@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DprStatus {
+  NA          @map("NA")
+  Filled      @map("Filled")
+  Not_Filled  @map("Not Filled")
+  Holiday     @map("Holiday")
+  Comp_Off    @map("Comp Off")
+}
+
+model Employee {
+  id            Int         @id @default(autoincrement())
+  employee_name String
+  employee_id   String      @unique
+  email         String
+  joining_date  DateTime    @db.Date
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+  dpr_entries   DprEntry[]
+
+  @@index([employee_name])
+  @@index([joining_date])
+  @@map("employees")
+}
+
+model DprEntry {
+  id          Int       @id @default(autoincrement())
+  employee_id Int
+  dpr_date    DateTime  @db.Date
+  status      DprStatus @default(NA)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  employee    Employee  @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@unique([employee_id, dpr_date])
+  @@index([dpr_date])
+  @@index([status])
+  @@map("dpr_entries")
+}
