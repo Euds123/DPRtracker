@@ -1,0 +1,344 @@
+Create a complete production-ready web application for Employee DPR (Daily Progress Report) Tracking System.
+====================================================
+TECH STACK
+Frontend:
+•	HTML5
+•	CSS3
+•	JavaScript
+•	Bootstrap 5
+Backend:
+•	Node.js
+•	Express.js
+Database:
+•	PostgreSQL hosted on Neon DB
+ORM:
+•	Prisma ORM
+Authentication:
+•	Hardcoded admin login for now
+•	Session/JWT based authentication
+Architecture:
+•	REST API based architecture
+•	Modular scalable folder structure
+•	Responsive design
+•	Production-ready coding standards
+====================================================
+APPLICATION MODULES
+1.	LOGIN PAGE
+====================================================
+Create a login page for admin authentication.
+Hardcoded Credentials:
+Username = Admin
+Password = Admin@786
+Features:
+•	Username textbox
+•	Password textbox
+•	Login button
+•	Show invalid credentials message
+•	Redirect to dashboard after successful login
+•	Protected routes after login
+•	Logout functionality
+Files:
+•	login.html
+•	auth middleware
+====================================================
+2. EMPLOYEE MASTER PAGE
+Purpose:
+Centralized employee management system.
+Columns:
+•	Employee Name
+•	Employee ID
+•	Email ID
+•	Joining Date
+Functionalities:
+•	Add Employee
+•	Edit Employee
+•	Delete Employee
+•	Search Employee
+•	Pagination
+•	Sorting
+•	Validation
+Validation Rules:
+•	Employee ID must be unique
+•	Email validation
+•	Required fields validation
+UI Requirements:
+•	Bootstrap table
+•	Responsive layout
+•	Modal popup for Add/Edit
+•	Delete confirmation popup
+•	Toast notifications
+Database Table:
+employees
+Fields:
+•	id (Primary Key)
+•	employee_name
+•	employee_id (Unique)
+•	email
+•	joining_date
+•	created_at
+•	updated_at
+====================================================
+3. MAIN DASHBOARD PAGE
+Purpose:
+Display monthly DPR filling status of employees.
+Columns:
+•	Employee Name
+•	Employee ID
+•	DPR Status
+•	Email ID
+•	Action Button
+Filters:
+•	Month dropdown
+•	Year dropdown
+•	Search employee
+Employee Visibility Logic:
+If employee joining date is after selected month,
+employee should NOT appear.
+Example:
+Employee joining month = May 2026
+If admin selects:
+April 2026 → Employee hidden
+May 2026 → Employee visible
+June 2026 → Employee visible
+DPR Status Logic:
+Based ONLY on number of "Not Filled" entries.
+Rules:
+0 Not Filled = Excellent
+1-2 Not Filled = Best
+3-5 Not Filled = Better
+6-7 Not Filled = Good
+8-10 Not Filled = Improvement
+More than 10 = Critical
+Badge Colors:
+•	Excellent = Green
+•	Best = Blue
+•	Better = Cyan
+•	Good = Yellow
+•	Improvement = Orange
+•	Critical = Red
+Actions:
+•	DPR Detailing button
+Additional Features:
+•	Dashboard summary cards
+•	Export to Excel
+•	Pagination
+•	Search
+•	Sorting
+====================================================
+4. DPR DETAILING PAGE
+Purpose:
+Admin marks daily DPR status for each employee.
+====================================================
+PAGE LAYOUT
+Top Filter Section:
+•	Month Dropdown
+•	Year Dropdown
+•	Employee Search
+•	Save Button
+•	Back Button
+====================================================
+TABLE DESIGN
+Create an Excel-style DPR matrix table.
+Fixed Columns:
+•	Employee Name
+•	Employee ID
+Dynamic Columns:
+Generate all dates dynamically based on selected month/year.
+Example:
+| Employee Name | Employee ID | 5/1/2026 | 5/2/2026 | 5/3/2026 |
+Each date cell should contain dropdown options:
+•	NA
+•	Filled
+•	Not Filled
+•	Holiday
+•	Comp Off
+Default Value:
+•	NA
+====================================================
+UI REQUIREMENTS
+•	Horizontal scrolling
+•	Sticky header row
+•	Sticky first 2 columns
+•	Compact Excel-style table
+•	Responsive layout
+•	Alternate row colors
+•	Color-coded dropdowns
+Dropdown Colors:
+•	Filled = Green
+•	Not Filled = Red
+•	Holiday = Blue
+•	Comp Off = Orange
+•	NA = Gray
+====================================================
+FUNCTIONAL LOGIC
+•	Auto-create employee rows
+•	Auto-load saved DPR data
+•	Save DPR statuses in bulk
+•	Employee visibility based on joining date logic
+•	Prevent duplicate DPR entries
+•	Loader during save
+•	Toast success notification
+====================================================
+DPR STATUS CALCULATION
+Only "Not Filled" count affects DPR Status.
+Ignore:
+•	Holiday
+•	Comp Off
+•	NA
+Rules:
+0 Not Filled = Excellent
+1-2 Not Filled = Best
+3-5 Not Filled = Better
+6-7 Not Filled = Good
+8-10 Not Filled = Improvement
+More than 10 = Critical
+====================================================
+DATABASE DESIGN
+TABLE: employees
+Fields:
+•	id
+•	employee_name
+•	employee_id
+•	email
+•	joining_date
+•	created_at
+•	updated_at
+________________________________________
+TABLE: dpr_entries
+Fields:
+•	id
+•	employee_id (Foreign Key)
+•	dpr_date
+•	status ENUM(
+'NA',
+'Filled',
+'Not Filled',
+'Holiday',
+'Comp Off'
+)
+•	created_at
+•	updated_at
+Constraints:
+•	Composite unique key:
+(employee_id, dpr_date)
+====================================================
+PRISMA REQUIREMENTS
+Generate:
+•	schema.prisma
+•	migration files
+•	relations
+•	indexes
+•	seed data
+Prisma Example:
+@@unique([employee_id, dpr_date])
+====================================================
+API REQUIREMENTS
+Authentication APIs:
+POST /api/auth/login
+POST /api/auth/logout
+Employee APIs:
+GET /api/employees
+POST /api/employees
+PUT /api/employees/:id
+DELETE /api/employees/:id
+DPR APIs:
+GET /api/dpr?month=5&year=2026
+POST /api/dpr/bulk-save
+GET /api/dpr/status-summary
+Dashboard APIs:
+GET /api/dashboard/status
+====================================================
+BACKEND REQUIREMENTS
+Use:
+•	Express Router
+•	Controllers
+•	Services
+•	Middleware
+•	JWT/session authentication
+•	Error handling middleware
+•	Async/await
+•	Bulk upsert operations
+Folder Structure:
+/server
+/controllers
+/routes
+/middlewares
+/services
+/prisma
+/utils
+====================================================
+FRONTEND REQUIREMENTS
+Pages:
+•	login.html
+•	dashboard.html
+•	employee-master.html
+•	dpr-detailing.html
+Frontend Folder:
+/client
+/pages
+/css
+/js
+/components
+Use:
+•	Bootstrap 5
+•	Responsive sidebar
+•	Top navbar
+•	Toast notifications
+•	Loaders/spinners
+•	Reusable components
+====================================================
+NEON DATABASE CONFIGURATION
+Use environment variable:
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/DB?sslmode=require"
+Create:
+•	.env example
+•	Prisma connection setup
+•	Database initialization
+====================================================
+AUTHENTICATION
+Use hardcoded credentials:
+Username = Admin
+Password = Admin@786
+After login:
+•	Generate token/session
+•	Protect all internal pages
+•	Redirect unauthorized users to login
+====================================================
+BONUS FEATURES
+If possible implement:
+•	Dark mode
+•	Excel export
+•	Search filters
+•	Sorting
+•	Dashboard analytics cards
+•	Monthly charts
+•	Pagination
+•	Mobile responsive layout
+====================================================
+README REQUIREMENTS
+Generate complete README.md including:
+•	Installation steps
+•	Prisma setup
+•	Neon DB setup
+•	Environment configuration
+•	Run commands
+•	Build commands
+•	Deployment instructions
+====================================================
+EXPECTED OUTPUT
+Generate complete:
+1.	Frontend code
+2.	Backend code
+3.	Prisma schema
+4.	SQL migration
+5.	API routes
+6.	Controllers
+7.	Services
+8.	Middleware
+9.	Database configuration
+10.	Seed script
+11.	Authentication flow
+12.	Responsive UI
+13.	README file
+The application must be fully functional, scalable, cleanly coded, and production-ready.
+
