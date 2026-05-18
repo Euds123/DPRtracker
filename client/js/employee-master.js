@@ -1,6 +1,16 @@
 let state = { page: 1, limit: 10, sortBy: 'employee_name', sortOrder: 'asc', search: '', editId: null };
 let employeeModal;
 let deleteModal;
+let currentWorkbook = null;
+let currentSheetName = '';
+let currentHeaders = [];
+let selectedFile = null;
+const MAPPING_FIELDS = [
+  { key: 'employee_name', label: 'Employee Name' },
+  { key: 'employee_id', label: 'Employee ID' },
+  { key: 'email', label: 'Email ID' },
+  { key: 'joining_date', label: 'Joining Date' },
+];
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!requireAuth()) return;
@@ -23,7 +33,8 @@ function getPageHTML() {
             <label class="form-label">Search</label>
             <input type="text" id="searchInput" class="form-control" placeholder="Name, ID or email" />
           </div>
-          <div class="col-md-6 text-md-end">
+          <div class="col-md-6 text-md-end d-flex justify-content-end gap-2 align-items-center">
+            <button class="btn btn-secondary" id="uploadExcelBtn"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Upload Excel</button>
             <button class="btn btn-primary" id="addEmployeeBtn"><i class="bi bi-plus-lg me-1"></i>Add Employee</button>
           </div>
         ${close}
@@ -49,6 +60,44 @@ function getPageHTML() {
         <nav><ul class="pagination pagination-sm mb-0" id="pagination"></ul></nav>
       </div>
     </motion-div>
+
+    <div class="excel-upload-panel" id="excelUploadPanel">
+      <div class="panel-header">
+        <div>
+          <h5 class="mb-0">Excel Upload</h5>
+          <small class="text-muted">Map SQL columns to Excel columns</small>
+        </div>
+        <button type="button" class="btn-close" id="closeExcelPanel"></button>
+      </div>
+      <div class="panel-body">
+        <div class="mb-3">
+          <label class="form-label">Choose Excel File</label>
+          <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" class="form-control" />
+        </div>
+        <div class="sheet-select-wrapper">
+          <label class="form-label">Worksheet</label>
+          <select id="excelSheetSelect" class="form-select" disabled></select>
+        </div>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="autoMapCheckbox" checked />
+          <label class="form-check-label" for="autoMapCheckbox">Auto Map Columns</label>
+        </div>
+        <div class="mapping-table-wrapper">
+          <table class="table table-sm mapping-table">
+            <thead>
+              <tr><th>SQL COLUMNS</th><th>EXCEL COLUMNS</th></tr>
+            </thead>
+            <tbody id="mappingRows"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel-footer">
+        <button class="btn btn-outline-secondary" id="downloadTemplateBtn"><i class="bi bi-download me-1"></i>Download Template</button>
+        <button class="btn btn-secondary" id="cancelExcelUpload">Cancel</button>
+        <button class="btn btn-primary" id="proceedExcelUpload">Proceed</button>
+      </div>
+    </div>
+    <div class="excel-upload-overlay" id="excelUploadOverlay"></div>
 
     <div class="modal fade" id="employeeModal" tabindex="-1">
       <div class="modal-dialog">
@@ -102,6 +151,17 @@ function getPageHTML() {
 
 function bindEvents() {
   document.getElementById('addEmployeeBtn').addEventListener('click', openAddModal);
+  document.getElementById('uploadExcelBtn').addEventListener('click', openExcelUploadPanel);
+  document.getElementById('closeExcelPanel').addEventListener('click', closeExcelUploadPanel);
+  document.getElementById('cancelExcelUpload').addEventListener('click', closeExcelUploadPanel);
+  document.getElementById('downloadTemplateBtn').addEventListener('click', downloadTemplate);
+  document.getElementById('excelUploadOverlay').addEventListener('click', closeExcelUploadPanel);
+  document.getElementById('excelFileInput').addEventListener('change', handleExcelFileSelect);
+  document.getElementById('excelSheetSelect').addEventListener('change', handleSheetChange);
+  document.getElementById('autoMapCheckbox').addEventListener('change', () => {
+    if (document.getElementById('autoMapCheckbox').checked) autoMapHeaders();
+  });
+  document.getElementById('proceedExcelUpload').addEventListener('click', submitExcelUpload);
   document.getElementById('employeeForm').addEventListener('submit', saveEmployee);
   document.getElementById('searchInput').addEventListener('input', debounce(() => {
     state.page = 1;
@@ -200,6 +260,148 @@ function openDeleteModal(id, name) {
   deleteModal.show();
 }
 
+function openExcelUploadPanel() {
+  document.getElementById('excelUploadPanel').classList.add('show');
+  document.getElementById('excelUploadOverlay').classList.add('show');
+  resetExcelPanel();
+}
+
+function closeExcelUploadPanel() {
+  document.getElementById('excelUploadPanel').classList.remove('show');
+  document.getElementById('excelUploadOverlay').classList.remove('show');
+  resetExcelPanel();
+}
+
+function resetExcelPanel() {
+  selectedFile = null;
+  currentWorkbook = null;
+  currentSheetName = '';
+  currentHeaders = [];
+  document.getElementById('excelFileInput').value = '';
+  document.getElementById('excelSheetSelect').innerHTML = '';
+  document.getElementById('excelSheetSelect').disabled = true;
+  document.getElementById('autoMapCheckbox').checked = true;
+  renderMappingRows();
+}
+
+function renderMappingRows() {
+  const mappingBody = document.getElementById('mappingRows');
+  const headerOptions = currentHeaders.map((header) => `<option value="${header}">${header}</option>`).join('');
+  mappingBody.innerHTML = MAPPING_FIELDS.map((field) => `
+    <tr>
+      <td class="fw-semibold">${field.label}</td>
+      <td>
+        <select class="form-select" data-mapping-key="${field.key}">
+          <option value="">Select column</option>
+          ${headerOptions}
+        </select>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function autoMapHeaders() {
+  const normalize = (value) => String(value || '').trim().toLowerCase();
+  const headerMap = Object.fromEntries(currentHeaders.map((h) => [normalize(h), h]));
+  const mappingOptions = {
+    employee_name: ['employee name', 'name', 'empname', 'emp name', 'employee_name'],
+    employee_id: ['employee id', 'id', 'employee_id', 'emp id', 'empid'],
+    email: ['email id', 'email', 'email_id', 'employee email', 'employee email id'],
+    joining_date: ['joining date', 'joining_date', 'date of joining', 'doj'],
+  };
+
+  MAPPING_FIELDS.forEach((field) => {
+    const select = document.querySelector(`select[data-mapping-key="${field.key}"]`);
+    if (!select) return;
+    const match = mappingOptions[field.key].map((candidate) => headerMap[candidate]).find(Boolean);
+    if (match) select.value = match;
+  });
+}
+
+function handleExcelFileSelect(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  selectedFile = file;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      currentWorkbook = workbook;
+      currentSheetName = workbook.SheetNames[0] || '';
+      const sheetSelect = document.getElementById('excelSheetSelect');
+      sheetSelect.disabled = workbook.SheetNames.length === 0;
+      sheetSelect.innerHTML = workbook.SheetNames.map((name) => `<option value="${name}">${name}</option>`).join('');
+      if (currentSheetName) sheetSelect.value = currentSheetName;
+      updateHeadersFromSheet();
+    } catch (err) {
+      showToast('Unable to read Excel file', 'error');
+      resetExcelPanel();
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function handleSheetChange(event) {
+  currentSheetName = event.target.value;
+  updateHeadersFromSheet();
+}
+
+function updateHeadersFromSheet() {
+  if (!currentWorkbook || !currentSheetName) return;
+  const sheet = currentWorkbook.Sheets[currentSheetName];
+  if (!sheet) return;
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  currentHeaders = Array.isArray(rows[0]) ? rows[0].map((h) => (h ?? '').toString().trim()).filter(Boolean) : [];
+  renderMappingRows();
+  if (document.getElementById('autoMapCheckbox').checked) autoMapHeaders();
+}
+
+async function submitExcelUpload() {
+  if (!selectedFile) {
+    showToast('Please choose an Excel file first', 'error');
+    return;
+  }
+
+  const mapping = {};
+  let valid = true;
+  MAPPING_FIELDS.forEach((field) => {
+    const select = document.querySelector(`select[data-mapping-key="${field.key}"]`);
+    mapping[field.key] = select?.value || '';
+    if (!mapping[field.key]) valid = false;
+  });
+
+  if (!valid) {
+    showToast('Please map all required columns', 'error');
+    return;
+  }
+
+  showLoader(true);
+  try {
+    const res = await api.bulkUploadEmployees(selectedFile, mapping, currentSheetName);
+    showToast(res.message);
+    closeExcelUploadPanel();
+    loadEmployees();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+function downloadTemplate() {
+  const templateData = [
+    {
+      'Employee Name': '',
+      'Employee ID': '',
+      'Email ID': '',
+      'Joining Date': '',
+    },
+  ];
+  exportToExcel(templateData, 'employee-upload-template.csv');
+}
+
 async function saveEmployee(e) {
   e.preventDefault();
   const body = {
@@ -238,3 +440,4 @@ async function confirmDelete() {
     showLoader(false);
   }
 }
+

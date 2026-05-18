@@ -22,6 +22,7 @@ function getDashboardHTML() {
           <div class="col-md-4 d-flex gap-2">
             <button class="btn btn-primary" id="applyFilter"><i class="bi bi-funnel me-1"></i>Apply</button>
             <button class="btn btn-success" id="exportBtn"><i class="bi bi-file-earmark-excel me-1"></i>Export</button>
+            <button class="btn btn-info" id="sendToAllBtn" title="Send notifications to all employees with missing days"><i class="bi bi-envelope-paper me-1"></i>Send to All</button>
           </div>
         </div>
       </div>
@@ -56,6 +57,7 @@ function bindEvents() {
     if (!state.exportData.length) { showToast('No data to export', 'error'); return; }
     exportToExcel(state.exportData, `dpr-dashboard-${Date.now()}.csv`);
   });
+  document.getElementById('sendToAllBtn').addEventListener('click', sendNotificationsToAll);
   document.querySelectorAll('.sortable').forEach((th) => {
     th.addEventListener('click', () => {
       const field = th.dataset.sort;
@@ -123,11 +125,49 @@ function renderTable(rows) {
       <td>${r.not_filled_count}</td>
       <td>${r.email}</td>
       <td>
-        <a href="/pages/dpr-detailing.html?employee=${encodeURIComponent(r.employee_id)}&month=${document.getElementById('filterMonth').value}&year=${document.getElementById('filterYear').value}" class="btn btn-sm btn-outline-primary">
+        <a href="/pages/dpr-detailing.html?employee=${encodeURIComponent(r.employee_id)}&month=${document.getElementById('filterMonth').value}&year=${document.getElementById('filterYear').value}" class="btn btn-sm btn-outline-primary me-1">
           <i class="bi bi-table me-1"></i>DPR Detailing
         </a>
+        <button class="btn btn-sm btn-outline-success send-notify" data-emp="${encodeURIComponent(r.employee_id)}" title="Send missing DPR notification">
+          <i class="bi bi-envelope-paper"></i>
+        </button>
       </td>
     </tr>`).join('');
+  // attach send notification handlers
+  tbody.querySelectorAll('.send-notify').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const empId = decodeURIComponent(btn.dataset.emp);
+      const month = document.getElementById('filterMonth').value;
+      const year = document.getElementById('filterYear').value;
+      if (!confirm('Send missing DPR notification to this employee?')) return;
+      showLoader(true);
+      try {
+        const res = await api.sendMissingDaysNotification(empId, month, year);
+        showToast(res.message || 'Notification sent');
+      } catch (err) {
+        showToast(err.message || 'Failed to send notification', 'error');
+      } finally {
+        showLoader(false);
+      }
+    });
+  });
+}
+
+async function sendNotificationsToAll() {
+  const month = document.getElementById('filterMonth').value;
+  const year = document.getElementById('filterYear').value;
+  if (!month || !year) { showToast('Please select Month and Year', 'error'); return; }
+  const confirm = window.confirm('Send notifications to all employees with missing DPR days?');
+  if (!confirm) return;
+  showLoader(true);
+  try {
+    const res = await api.sendNotificationsToAll({ month: Number(month), year: Number(year) });
+    showToast(`Notifications sent to ${res.sentCount} employee(s)`);
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    showLoader(false);
+  }
 }
 
 function renderPagination(page, totalPages, total) {

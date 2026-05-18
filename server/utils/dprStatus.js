@@ -11,7 +11,31 @@ function countNotFilled(entries) {
   return entries.filter((e) => e.status === 'Not_Filled').length;
 }
 
-function getDprStatus(notFilledCount) {
+function getDprStatus(entriesOrCount) {
+  if (Array.isArray(entriesOrCount)) {
+    const entries = entriesOrCount;
+    if (entries.length > 0 && entries.every((entry) => entry.status === 'NA')) {
+      return { label: 'NA', badgeClass: 'bg-secondary', notFilledCount: 0 };
+    }
+
+    const notFilledCount = countNotFilled(entries);
+    if (notFilledCount === 0) {
+      return { label: 'Excellent', badgeClass: 'bg-success', notFilledCount };
+    }
+
+    if (notFilledCount === 1) {
+      return { label: 'Good', badgeClass: 'bg-warning text-dark', notFilledCount };
+    }
+    if (notFilledCount >= 2 && notFilledCount <= 5) {
+      return { label: 'Better', badgeClass: 'bg-info', notFilledCount };
+    }
+    if (notFilledCount >= 6 && notFilledCount <= 7) {
+      return { label: 'Improvement', badgeClass: 'bg-orange', notFilledCount };
+    }
+    return { label: 'Critical', badgeClass: 'bg-danger', notFilledCount };
+  }
+
+  const notFilledCount = Number(entriesOrCount || 0);
   for (const rule of STATUS_RULES) {
     if (notFilledCount <= rule.max) {
       return { label: rule.label, badgeClass: rule.badgeClass, notFilledCount };

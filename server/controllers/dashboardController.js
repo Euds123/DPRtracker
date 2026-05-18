@@ -18,4 +18,22 @@ async function getStatus(req, res) {
   res.json({ success: true, ...result });
 }
 
-module.exports = { getStatus };
+async function sendNotification(req, res) {
+  const { employee_id, month, year } = req.body;
+  if (!employee_id) return res.status(400).json({ success: false, message: 'employee_id is required' });
+  const m = Number(month) || new Date().getMonth() + 1;
+  const y = Number(year) || new Date().getFullYear();
+  const result = await dashboardService.sendMissingDaysNotification({ employee_id, month: m, year: y });
+  res.json({ success: true, message: 'Notification sent', data: result });
+}
+
+async function sendNotificationsToAll(req, res) {
+  const { month, year } = req.body;
+  if (!month || !year) return res.status(400).json({ success: false, message: 'month and year are required' });
+  const m = Number(month);
+  const y = Number(year);
+  const result = await dashboardService.sendNotificationsToAll({ month: m, year: y });
+  res.json({ success: true, message: 'Bulk notifications processed', data: result });
+}
+
+module.exports = { getStatus, sendNotification, sendNotificationsToAll };

@@ -114,6 +114,7 @@ async function getStatusSummary(month, year) {
 
   const summary = {
     Excellent: 0,
+    NA: 0,
     Best: 0,
     Better: 0,
     Good: 0,
@@ -124,9 +125,8 @@ async function getStatusSummary(month, year) {
 
   for (const emp of employees) {
     const empEntries = byEmployee[emp.id] || [];
-    const notFilled = countNotFilled(empEntries);
-    const status = getDprStatus(notFilled);
-    summary[status.label]++;
+    const status = getDprStatus(empEntries);
+    summary[status.label] = (summary[status.label] || 0) + 1;
   }
 
   return summary;

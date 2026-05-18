@@ -8,5 +8,7 @@ const router = express.Router();
 router.use(authenticate);
 
 router.get('/status', asyncHandler(dashboardController.getStatus));
+router.post('/notify', asyncHandler(dashboardController.sendNotification));
+router.post('/notify-all', asyncHandler(dashboardController.sendNotificationsToAll));
 
 module.exports = router;

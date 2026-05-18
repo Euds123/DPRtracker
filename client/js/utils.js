@@ -109,6 +109,7 @@ function dprSelectClass(status) {
     'Not Filled': 'status-not-filled',
     Holiday: 'status-holiday',
     'Comp Off': 'status-comp-off',
+    'On Leave': 'status-on-leave',
     NA: 'status-na',
   };
   return map[status] || 'status-na';
@@ -117,6 +118,7 @@ function dprSelectClass(status) {
 function statusBadgeClass(label) {
   const map = {
     Excellent: 'bg-success',
+    NA: 'bg-secondary',
     Best: 'bg-primary',
     Better: 'bg-info',
     Good: 'bg-warning text-dark',

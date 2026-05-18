@@ -1,4 +1,4 @@
-const DPR_OPTIONS = ['NA', 'Filled', 'Not Filled', 'Holiday', 'Comp Off'];
+const DPR_OPTIONS = ['NA', 'Filled', 'Not Filled', 'Holiday', 'Comp Off', 'On Leave'];
 let matrixData = { dates: [], rows: [] };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -17,25 +17,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function getPageHTML() {
   return `
-    <div class="card border-0 shadow-sm mb-3">
-      <div class="card-body">
-        <div class="row g-2 align-items-end">
-          <div class="col-md-2"><label class="form-label">Month</label><select id="filterMonth" class="form-select"></select></div>
-          <div class="col-md-2"><label class="form-label">Year</label><select id="filterYear" class="form-select"></select></div>
-          <motion-div class="col-md-4"><label class="form-label">Search Employee</label><input type="text" id="searchInput" class="form-control" placeholder="Name or ID" /></motion-div>
-          <div class="col-md-4 d-flex gap-2 flex-wrap">
-            <button class="btn btn-primary" id="loadBtn"><i class="bi bi-arrow-clockwise me-1"></i>Load</button>
-            <button class="btn btn-success" id="saveBtn"><i class="bi bi-save me-1"></i>Save</button>
-            <a href="/pages/dashboard.html" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <div class="dpr-page-layout">
+      <div class="dpr-page-header">
+        <div class="dpr-page-title-row">
+          <div>
+            <h4 class="page-title mb-1">DPR Detailing</h4>
+            <p class="text-muted small mb-0">Update DPR entries for selected employees and month.</p>
+          </div>
+          <div class="dpr-action-buttons">
+            <button class="btn btn-primary btn-sm" id="loadBtn"><i class="bi bi-arrow-clockwise me-1"></i>Load</button>
+            <button class="btn btn-success btn-sm" id="saveBtn"><i class="bi bi-save me-1"></i>Save</button>
+            <a href="/pages/dashboard.html" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
           </div>
         </div>
+
+        <div class="row g-3 align-items-end dpr-filter-row">
+          <div class="col-lg-3 col-md-4 col-sm-6"><label class="form-label">Month</label><select id="filterMonth" class="form-select"></select></div>
+          <div class="col-lg-2 col-md-3 col-sm-6"><label class="form-label">Year</label><select id="filterYear" class="form-select"></select></div>
+          <div class="col-lg-4 col-md-5 col-sm-12"><label class="form-label">Search Employee</label><input type="text" id="searchInput" class="form-control" placeholder="Name or ID" /></div>
+        </div>
       </div>
-    </div>
-    <div class="dpr-matrix-wrapper">
-      <table class="dpr-matrix-table" id="dprMatrix">
-        <thead id="matrixHead"></thead>
-        <tbody id="matrixBody"></tbody>
-      </table>
+
+      <div class="dpr-table-panel">
+        <div class="dpr-matrix-wrapper">
+          <table class="dpr-matrix-table" id="dprMatrix">
+            <thead id="matrixHead"></thead>
+            <tbody id="matrixBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>`.replace(/motion-div/g, 'div');
 }
 
